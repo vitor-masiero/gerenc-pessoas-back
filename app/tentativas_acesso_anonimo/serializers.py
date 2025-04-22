@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Endereco, Usuario, Empresa, UsuarioEmpresa, Relatorio, TentativaAcesso, TentativaAcessoAnonimo, Alerta, AlertaAnonimo
+from app.tentativas_acesso_anonimo.models import TentativaAcessoAnonimo
 
 class TentativaAcessoAnonimoSerializer(serializers.ModelSerializer):
     class Meta:

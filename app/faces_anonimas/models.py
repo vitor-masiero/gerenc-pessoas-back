@@ -1,4 +1,5 @@
 from django.db import models
+from app.tentativas_acesso_anonimo.models import TentativaAcessoAnonimo
 
 class FaceAnonima(models.Model):
     id_tentativa_acesso_anonimo = models.ForeignKey(
