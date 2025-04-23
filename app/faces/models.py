@@ -8,7 +8,7 @@ class Face(models.Model):
         Usuario, 
         on_delete=models.CASCADE,  
         related_name='faces',     
-        null=True,                  
+        null=False,                  
         verbose_name='Usuario'
     )
     arr_imagem = ArrayField(models.FloatField()) #Não sobrecarrega o Banco

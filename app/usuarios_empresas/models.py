@@ -1,6 +1,6 @@
 from django.db import models
 from app.usuarios.models import Usuario
-from app.enderecos.models import Endereco
+from app.empresas.models import Empresa
 
 class UsuarioEmpresa(models.Model):
     id = models.AutoField(primary_key=True)

@@ -1,6 +1,9 @@
-from .models import UsuarioEmpresa, Usuario, Empresa
+from app.empresas.models import Empresa
+from app.usuarios.models import Usuario
+from app.usuarios_empresas.models import UsuarioEmpresa
 from rest_framework import serializers
-from .serializers import EmpresaSerializer, UsuarioSerializer
+from app.empresas.serializers import EmpresaSerializer
+from app.usuarios.serializers import UsuarioSerializer
 
 class UsuarioEmpresaSerializer(serializers.ModelSerializer):
     usuario = UsuarioSerializer(read_only=True)
@@ -27,6 +30,7 @@ class UsuarioEmpresaSerializer(serializers.ModelSerializer):
                 'help_text' : 'Permissão do Usuário'
             }
         }
+        fields = '__all__'
     
     def create(self, validated_data):
         return UsuarioEmpresa.objects.create(**validated_data)
@@ -36,3 +40,4 @@ class UsuarioEmpresaSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+    

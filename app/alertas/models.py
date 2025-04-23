@@ -1,4 +1,4 @@
-from django import models
+from django.db import models
 from app.usuarios_empresas.models import UsuarioEmpresa
 class Alerta(models.Model):
     id = models.AutoField(primary_key=True)

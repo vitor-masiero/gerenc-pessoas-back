@@ -1,4 +1,4 @@
-from django import models
+from django.db import models
 from app.empresas.models import Empresa
 
 class AlertaAnonimo(models.Model):

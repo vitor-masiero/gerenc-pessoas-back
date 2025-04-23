@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     'app.tentativas_acesso',
     'app.alertas',
     'app.alertas_anonimos',
-    'app.tentativas_acesso_anonimos',
+    'app.tentativas_acesso_anonimo',
     'app.faces_anonimas',
     'app.usuarios_empresas'
 ]
