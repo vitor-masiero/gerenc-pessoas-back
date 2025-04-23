@@ -8,6 +8,7 @@ from app.scripts.captura_facial import process_faces_with_face_recognition, extr
 from .models import Face, Usuario
 from rest_framework.generics import DestroyAPIView
 from .serializers import FaceSerializer
+from scipy.spatial.distance import cosine
 
 #POST
 class FaceRegisterView(APIView):
@@ -110,4 +111,70 @@ class FaceUpdateView(APIView):
             "success": True,
             "face_id": face.id,
             "usuario_id": face.usuario_id
+        }, status=status.HTTP_200_OK)
+    
+
+SIMILARITY_THRESHOLD = 0.85  # pode ajustar
+
+def comparar_vetores(v1, v2):
+    return 1 - cosine(v1, v2)
+
+class FaceValidationView(APIView):
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, *args, **kwargs):
+        user_id = request.data.get("usuario_id")
+        files = request.FILES.getlist("frames")
+
+        if not user_id or not files:
+            return Response({
+                "success": False,
+                "message": "ID do usuário e frames são obrigatórios."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            usuario = Usuario.objects.get(pk=user_id)
+        except Usuario.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Usuário não encontrado."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        frames = []
+        for file in files:
+            file_bytes = np.frombuffer(file.read(), np.uint8)
+            frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            if frame is not None:
+                frames.append(frame)
+
+        if not frames:
+            return Response({
+                "success": False,
+                "message": "Nenhuma imagem válida foi enviada."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        vetor_entrada = process_faces_with_face_recognition(frames)
+        if not vetor_entrada:
+            return Response({
+                "success": False,
+                "message": "Nenhum rosto detectado nos frames."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        faces_salvas = Face.objects.filter(usuario=usuario)
+
+        for face in faces_salvas:
+            similaridade = comparar_vetores(vetor_entrada, face.arr_imagem)
+            if similaridade >= SIMILARITY_THRESHOLD:
+                return Response({
+                    "success": True,
+                    "autenticado": True,
+                    "similaridade": round(similaridade, 3),
+                    "usuario_id": usuario.id,
+                    "face_id": face.id
+                }, status=status.HTTP_200_OK)
+
+        return Response({
+            "success": True,
+            "autenticado": False,
+            "message": "Nenhuma face compatível encontrada."
         }, status=status.HTTP_200_OK)
