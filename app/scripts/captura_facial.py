@@ -34,21 +34,20 @@ def extract_face_from_frame(frame):
     return None
 
 def process_faces_with_face_recognition(frames):
-    """
-    Extrai vetores faciais usando face_recognition de múltiplos frames.
-    Retorna a média dos vetores encontrados.
-    """
     vectors = []
 
     for frame in frames:
-        face_img = extract_face_from_frame(frame)
-        if face_img is not None:
-            encodings = face_recognition.face_encodings(face_img)
-            if encodings:
-                vectors.append(encodings[0])
+        # Detecção e vetorização com face_recognition
+        face_locations = face_recognition.face_locations(frame)
+
+        if not face_locations:
+            continue
+
+        encodings = face_recognition.face_encodings(frame, face_locations)
+        if encodings:
+            vectors.append(encodings[0])
 
     if not vectors:
         return None
 
-    # Retorna a média dos vetores encontrados
     return np.mean(vectors, axis=0).tolist()

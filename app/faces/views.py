@@ -19,6 +19,7 @@ class FaceRegisterView(APIView):
         files = request.FILES.getlist("frames")
 
         if not user_id or not files:
+            print("ID do usuário e frames são obrigatórios.")
             return Response({
                 "success": False,
                 "message": "ID do usuário e frames são obrigatórios."
@@ -40,6 +41,7 @@ class FaceRegisterView(APIView):
                 frames.append(frame)
 
         if not frames:
+            print("Nenhuma imagem válida foi enviada.")
             return Response({
                 "success": False,
                 "message": "Nenhuma imagem válida foi enviada."
@@ -47,6 +49,7 @@ class FaceRegisterView(APIView):
 
         vector = process_faces_with_face_recognition(frames)
         if not vector:
+            print("Nenhum rosto detectado nos frames.")
             return Response({
                 "success": False,
                 "message": "Nenhum rosto detectado nos frames."
