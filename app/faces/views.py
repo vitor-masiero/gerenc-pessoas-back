@@ -5,10 +5,13 @@ from rest_framework import status
 import numpy as np
 import cv2
 from app.scripts.captura_facial import process_faces_with_face_recognition, extract_face_from_frame
-from .models import Face, Usuario
+from app.faces.models import Face
+from app.usuarios.models import Usuario
+from app.usuarios_empresas.models import UsuarioEmpresa
 from rest_framework.generics import DestroyAPIView
 from .serializers import FaceSerializer
 from scipy.spatial.distance import cosine
+from app.alertas.services.alerta_service import registrar_alerta
 
 #POST
 class FaceRegisterView(APIView):
@@ -26,7 +29,7 @@ class FaceRegisterView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            usuario = Usuario.objects.get(pk=user_id)
+            usuarsio = Usuario.objects.get(pk=user_id)
         except Usuario.DoesNotExist:
             return Response({
                 "success": False,
@@ -137,11 +140,18 @@ class FaceValidationView(APIView):
 
         try:
             usuario = Usuario.objects.get(pk=user_id)
-        except Usuario.DoesNotExist:
+            usuario_empresa = UsuarioEmpresa.objects.get(id_usuario=usuario)
+        except (Usuario.DoesNotExist, UsuarioEmpresa.DoesNotExist):
             return Response({
                 "success": False,
                 "message": "Usuário não encontrado."
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        if usuario.bl_bloqueado:
+            return Response({
+                "success": False,
+                "message": "Usuário bloqueado após múltiplas tentativas. Contate o administrador."
+            }, status=status.HTTP_403_FORBIDDEN)
 
         frames = []
         for file in files:
@@ -168,6 +178,18 @@ class FaceValidationView(APIView):
         for face in faces_salvas:
             similaridade = comparar_vetores(vetor_entrada, face.arr_imagem)
             if similaridade >= SIMILARITY_THRESHOLD:
+                TentativaAcesso.objects.create(
+                    usuario_empresa=usuario_empresa,
+                    sucesso=True,
+                    similaridade=similaridade
+                )
+                registrar_alerta(
+                    usuario_empresa=usuario_empresa,
+                    tipo_alerta="login_sucesso",
+                    mensagem_dict={"mensagem": f"Login facial realizado com sucesso por {usuario.nm_nome}."},
+                    enviar_email=True,
+                    destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
+                )
                 return Response({
                     "success": True,
                     "autenticado": True,
@@ -176,6 +198,19 @@ class FaceValidationView(APIView):
                     "face_id": face.id
                 }, status=status.HTTP_200_OK)
 
+        TentativaAcesso.objects.create(
+            usuario_empresa=usuario_empresa,
+            sucesso=False,
+            similaridade=None
+        )
+        registrar_alerta(
+            usuario_empresa=usuario_empresa,
+            tipo_alerta="login_falha",
+            mensagem_dict={"mensagem": f"Tentativa de login facial falhou para {usuario.nm_nome}."},
+            enviar_email=True,
+            destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
+        )
+        
         return Response({
             "success": True,
             "autenticado": False,
