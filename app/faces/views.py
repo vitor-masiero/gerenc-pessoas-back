@@ -35,6 +35,7 @@ class FaceRegisterView(APIView):
 
         try:
             usuario = Usuario.objects.get(pk=user_id)
+            usuario_empresa = UsuarioEmpresa.objects.get(usuario=usuario)
         except Usuario.DoesNotExist:
             return Response({
                 "success": False,
@@ -67,6 +68,15 @@ class FaceRegisterView(APIView):
             usuario=usuario,
             arr_imagem=vector
         )
+
+        registrar_alerta(
+            usuario_empresa=usuario_empresa,
+            tipo_alerta="face-registrada",
+            mensagem_dict={"mensagem": f"Face registrada com sucesso do usuário {usuario.nm_nome}."},
+            enviar_email=True,
+            destinatarios=["thiagoamthypc@gmail.com"]
+        )
+
 
         return Response({
             "success": True,
@@ -153,12 +163,7 @@ class FaceValidationView(APIView):
                 "message": "Usuário não encontrado."
             }, status=status.HTTP_404_NOT_FOUND)
         
-        if usuario.bl_bloqueado:
-            return Response({
-                "success": False,
-                "message": "Usuário bloqueado após múltiplas tentativas. Contate o administrador."
-            }, status=status.HTTP_403_FORBIDDEN)
-
+    
         frames = []
         for file in files:
             file_bytes = np.frombuffer(file.read(), np.uint8)
