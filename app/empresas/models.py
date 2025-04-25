@@ -12,7 +12,7 @@ class Empresa(models.Model):
     )
     nm_nome = models.CharField(max_length=100)
     ds_cnpj = models.CharField(max_length=20)
-    ds_senha_hash = models.CharField(max_length=20)
+    ds_senha_hash = models.CharField(max_length=20, default='')
 
     class Meta:
         verbose_name = 'Empresa'

@@ -9,7 +9,7 @@ class FaceAnonima(models.Model):
         null=True,                  
         verbose_name='Tentativa de Acesso Anonimo'
     )
-    img_anonimo = models.ImageField(upload_to='img_anonimas/')
+    img_anonimo = models.ImageField(upload_to='media/faces_anonimas/')
     dt_criado = models.DateTimeField(auto_now_add=True)
 
     class Meta:

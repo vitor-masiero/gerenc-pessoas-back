@@ -15,6 +15,9 @@ from rest_framework.generics import DestroyAPIView
 from app.faces.serializers import FaceSerializer
 from scipy.spatial.distance import cosine
 from app.alertas.services.alerta_service import registrar_alerta
+import tempfile
+from django.core.files import File
+from app.faces_anonimas.models import FaceAnonima
 
 #POST
 class FaceRegisterView(APIView):
@@ -211,6 +214,15 @@ class FaceValidationView(APIView):
             enviar_email=True,
             destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
         )
+        if frames:
+            primeiro_frame = frames[0]
+            with tempfile.NamedTemporaryFile(suffix=".jpg") as temp_img:
+                cv2.imwrite(temp_img.name, primeiro_frame)
+                temp_img.seek(0)
+                FaceAnonima.objects.create(
+                    id_empresa=empresa,
+                    imagem=File(temp_img, name=f"anonima_{usuario.id}.jpg")
+                )
         
         return Response({
             "success": True,

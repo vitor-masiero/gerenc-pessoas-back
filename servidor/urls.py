@@ -1,6 +1,8 @@
 
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,5 +15,9 @@ urlpatterns = [
     path('api/tentativas-acesso-anonimo/', include('app.tentativas_acesso_anonimo.urls')),
     path('api/faces-anonimas/', include('app.faces_anonimas.urls')),
     path('api/usuarios-empresa/', include('app.usuarios_empresas.urls')),
+    path('api/alertas/', include('app.alertas.urls')),
+    path('api/alertas-anonimos/', include('app.alertas_anonimos.urls')),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,31 +1,12 @@
+from django.utils.html import mark_safe
 from django.contrib import admin
-from .models import (
-    Endereco,
-    Empresa,
-    Usuario,
-    UsuarioEmpresa,
-    TentativaAcesso,
-    TentativaAcessoAnonimo,
-    Face,
-    FaceAnonima,
-    Alerta,
-    AlertaAnonimo,
-    Relatorio,
-)
+from app.faces_anonimas.models import FaceAnonima
 
-models_admin = [
-    Endereco,
-    Empresa,
-    Usuario,
-    UsuarioEmpresa,
-    TentativaAcesso,
-    Face,
-    Alerta,
-    Relatorio,
-    TentativaAcessoAnonimo,
-    FaceAnonima,
-    AlertaAnonimo,
-]
+@admin.register(FaceAnonima)
+class FaceAnonimaAdmin(admin.ModelAdmin):
+    list_display = ['id_empresa', 'dt_criado', 'preview']
 
-for model in models_admin:
-    admin.site.register(model)
+    def preview(self, obj):
+        if obj.imagem:
+            return mark_safe(f'<img src="{obj.imagem.url}" width="100" />')
+        return "Sem imagem"
