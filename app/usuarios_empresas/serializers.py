@@ -9,7 +9,7 @@ class UsuarioEmpresaSerializer(serializers.ModelSerializer):
     usuario = UsuarioSerializer(read_only=True)
     usuario_id = serializers.PrimaryKeyRelatedField(
         queryset=Usuario.objects.all(),
-        source='id_usuario',
+        source='id',
         required=False,
         write_only=True
     )
@@ -17,7 +17,7 @@ class UsuarioEmpresaSerializer(serializers.ModelSerializer):
     empresa = EmpresaSerializer(read_only=True)
     empresa_id = serializers.PrimaryKeyRelatedField(
         queryset=Empresa.objects.all(),
-        source='id_empresa',
+        source='id',
         required=False,
         write_only=True
     )
