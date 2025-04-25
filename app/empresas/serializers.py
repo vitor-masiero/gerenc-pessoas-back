@@ -22,6 +22,11 @@ class EmpresaSerializer(serializers.ModelSerializer):
             'ds_cnpj': {
                 'required':True,
                 'help_text': 'CNPJ da empresa'
+            },
+            'ds_senha_hash':  {
+                'required':True,
+                'write_only': True,
+                'help_text': 'Senha da empresa.'
             }
         }
     
