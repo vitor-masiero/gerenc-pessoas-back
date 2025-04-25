@@ -7,9 +7,12 @@ import cv2
 from app.scripts.captura_facial import process_faces_with_face_recognition, extract_face_from_frame
 from app.faces.models import Face
 from app.usuarios.models import Usuario
+from app.empresas.models import Empresa
+from app.tentativas_acesso.models import TentativaAcesso
+from app.tentativas_acesso_anonimo.models import TentativaAcessoAnonimo
 from app.usuarios_empresas.models import UsuarioEmpresa
 from rest_framework.generics import DestroyAPIView
-from .serializers import FaceSerializer
+from app.faces.serializers import FaceSerializer
 from scipy.spatial.distance import cosine
 from app.alertas.services.alerta_service import registrar_alerta
 
@@ -29,7 +32,7 @@ class FaceRegisterView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            usuarsio = Usuario.objects.get(pk=user_id)
+            usuario = Usuario.objects.get(pk=user_id)
         except Usuario.DoesNotExist:
             return Response({
                 "success": False,
@@ -139,8 +142,9 @@ class FaceValidationView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            usuario = Usuario.objects.get(pk=user_id)
+            usuario = Usuario.objects.get(pk=id)
             usuario_empresa = UsuarioEmpresa.objects.get(id_usuario=usuario)
+            empresa = Empresa.objects.get(pk=id)
         except (Usuario.DoesNotExist, UsuarioEmpresa.DoesNotExist):
             return Response({
                 "success": False,
@@ -179,9 +183,8 @@ class FaceValidationView(APIView):
             similaridade = comparar_vetores(vetor_entrada, face.arr_imagem)
             if similaridade >= SIMILARITY_THRESHOLD:
                 TentativaAcesso.objects.create(
-                    usuario_empresa=usuario_empresa,
-                    sucesso=True,
-                    similaridade=similaridade
+                    id_usuario_empresa=usuario_empresa,
+                    bl_sucesso=True
                 )
                 registrar_alerta(
                     usuario_empresa=usuario_empresa,
@@ -198,10 +201,8 @@ class FaceValidationView(APIView):
                     "face_id": face.id
                 }, status=status.HTTP_200_OK)
 
-        TentativaAcesso.objects.create(
-            usuario_empresa=usuario_empresa,
-            sucesso=False,
-            similaridade=None
+        TentativaAcessoAnonimo.objects.create(
+            id_empresa=empresa
         )
         registrar_alerta(
             usuario_empresa=usuario_empresa,

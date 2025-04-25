@@ -17,7 +17,7 @@ def registrar_alerta(usuario_empresa, tipo_alerta, mensagem_dict, enviar_email=F
         send_mail(
             subject=assunto,
             message=corpo,
-            from_email=None
+            from_email=None,
             recipient_list=destinatarios,
             fail_silently=False
         )
