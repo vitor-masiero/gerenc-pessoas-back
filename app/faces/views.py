@@ -70,8 +70,10 @@ class FaceRegisterView(APIView):
                 "message": "Nenhum rosto detectado nos frames."
             }, status=status.HTTP_400_BAD_REQUEST)
         ids_faces = []
-
+        
         for vetor in vetores:
+            if isinstance(vetor, np.ndarray):
+                vetor = vetor.tolist()
             face = Face.objects.create(
                 usuario=usuario,
                 arr_imagem=vetor
@@ -156,6 +158,7 @@ class FaceValidationView(APIView):
     def post(self, request, *args, **kwargs):
         user_id = request.data.get("usuario_id")
         files = request.FILES.getlist("frames")
+        emp_id = Empresa.objects.get(id)
 
         if not user_id or not files:
             return Response({
@@ -164,9 +167,9 @@ class FaceValidationView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            usuario = Usuario.objects.get(pk=id)
+            usuario = Usuario.objects.get(pk=user_id)
             usuario_empresa = UsuarioEmpresa.objects.get(id_usuario=usuario)
-            empresa = Empresa.objects.get(pk=id)
+            empresa = Empresa.objects.get(pk=emp_id)
         except (Usuario.DoesNotExist, UsuarioEmpresa.DoesNotExist):
             return Response({
                 "success": False,

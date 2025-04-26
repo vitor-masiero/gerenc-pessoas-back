@@ -50,4 +50,4 @@ def process_faces_with_face_recognition(frames):
     if not vectors:
         return None
 
-    return np.mean(vectors, axis=0).tolist()
+    return [v.tolist() for v in vectors]
