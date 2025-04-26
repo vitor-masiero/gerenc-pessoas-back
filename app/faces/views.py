@@ -40,6 +40,12 @@ class FaceRegisterView(APIView):
                 "success": False,
                 "message": "Usuário não encontrado."
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        if Face.objects.filter(usuario=usuario).exists():
+            return Response({
+                "success": False,
+                "message": "Este usuário já possui faces cadastradas. Não é permitido cadastrar novamente."
+            }, status=status.HTTP_403_FORBIDDEN)
 
         frames = []
         for file in files:
@@ -55,22 +61,26 @@ class FaceRegisterView(APIView):
                 "message": "Nenhuma imagem válida foi enviada."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        vector = process_faces_with_face_recognition(frames)
-        if not vector:
+        vetores = process_faces_with_face_recognition(frames)
+        if not vetores or not isinstance(vetores, list):
             print("Nenhum rosto detectado nos frames.")
             return Response({
                 "success": False,
                 "message": "Nenhum rosto detectado nos frames."
             }, status=status.HTTP_400_BAD_REQUEST)
+        ids_faces = []
 
-        face = Face.objects.create(
-            usuario=usuario,
-            arr_imagem=vector
-        )
+        for vetor in vetores:
+            face = Face.objects.create(
+                usuario=usuario,
+                arr_imagem=vetor
+            )
+            ids_faces.append(face.id)
 
         return Response({
             "success": True,
-            "face_id": face.id,
+            "quantidade_faces": len(ids_faces),
+            "ids": ids_faces,
             "usuario_id": usuario.id
         }, status=status.HTTP_201_CREATED)
     
