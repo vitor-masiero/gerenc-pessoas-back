@@ -147,7 +147,7 @@ class FaceUpdateView(APIView):
         }, status=status.HTTP_200_OK)
     
 
-SIMILARITY_THRESHOLD = 0.90  # pode ajustar
+SIMILARITY_THRESHOLD = 0.80  # pode ajustar
 
 def comparar_vetores(v1, v2):
     return 1 - cosine(v1, v2)
@@ -167,8 +167,8 @@ class FaceValidationView(APIView):
 
         try:
             usuario = Usuario.objects.get(pk=user_id)
-            usuario_empresa = UsuarioEmpresa.objects.get(id_usuario=usuario)
-            empresa = Empresa.objects.get(pk=usuario_empresa.id_empresa)
+            usuario_empresa = UsuarioEmpresa.objects.get(usuario=usuario)
+            empresa = usuario_empresa.empresa
         except Empresa.DoesNotExist:
             return Response({
                 "success": False,
@@ -194,20 +194,30 @@ class FaceValidationView(APIView):
                 "message": "Nenhuma imagem válida foi enviada."
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        vetor_entrada = process_faces_with_face_recognition(frames)
-        if not vetor_entrada:
+        vetores_entrada = process_faces_with_face_recognition(frames)
+        if not vetores_entrada:
             return Response({
                 "success": False,
                 "message": "Nenhum rosto detectado nos frames."
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if isinstance(vetores_entrada, list):
+            vetor_entrada = np.mean(np.array(vetores_entrada), axis=0)
+        else:
+            vetor_entrada = vetores_entrada
+
+        vetor_entrada = np.array(vetor_entrada, dtype=np.float32)
 
         faces_salvas = Face.objects.filter(usuario=usuario)
 
         for face in faces_salvas:
-            similaridade = comparar_vetores(vetor_entrada, face.arr_imagem)
-            if similaridade >= SIMILARITY_THRESHOLD:
-                acertos += 1
-                if acertos >= 2:
+            vetor_salvo = face.arr_imagem
+            vetor_salvo = np.array(vetor_salvo, dtype=np.float32)
+            
+            if vetor_entrada.ndim == 1 and vetor_salvo.ndim == 1:
+                similaridade = comparar_vetores(vetor_entrada, vetor_salvo)
+                
+                if similaridade >= SIMILARITY_THRESHOLD:
                     TentativaAcesso.objects.create(
                         id_usuario_empresa=usuario_empresa,
                         bl_sucesso=True
@@ -227,7 +237,7 @@ class FaceValidationView(APIView):
                         "face_id": face.id
                     }, status=status.HTTP_200_OK)
 
-        TentativaAcessoAnonimo.objects.create(
+        tentativa_acesso_anonimo = TentativaAcessoAnonimo.objects.create(
             id_empresa=empresa
         )
         registrar_alerta(
@@ -239,7 +249,7 @@ class FaceValidationView(APIView):
         )
         if frames:
             primeiro_frame = frames[0]
-            criar_face_anonima(empresa=empresa, frame=primeiro_frame, usuario=usuario)
+            criar_face_anonima(tentativa_acesso_anonimo=tentativa_acesso_anonimo, frame=primeiro_frame, usuario=usuario)
             
         return Response({
             "success": False,
