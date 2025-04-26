@@ -147,7 +147,7 @@ class FaceUpdateView(APIView):
         }, status=status.HTTP_200_OK)
     
 
-SIMILARITY_THRESHOLD = 0.85  # pode ajustar
+SIMILARITY_THRESHOLD = 0.90  # pode ajustar
 
 def comparar_vetores(v1, v2):
     return 1 - cosine(v1, v2)
@@ -158,7 +158,6 @@ class FaceValidationView(APIView):
     def post(self, request, *args, **kwargs):
         user_id = request.data.get("usuario_id")
         files = request.FILES.getlist("frames")
-        emp_id = Empresa.objects.get(id)
 
         if not user_id or not files:
             return Response({
@@ -169,7 +168,12 @@ class FaceValidationView(APIView):
         try:
             usuario = Usuario.objects.get(pk=user_id)
             usuario_empresa = UsuarioEmpresa.objects.get(id_usuario=usuario)
-            empresa = Empresa.objects.get(pk=emp_id)
+            empresa = Empresa.objects.get(pk=usuario_empresa.id_empresa)
+        except Empresa.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Empresa não encontrada."
+            }, status=status.HTTP_404_NOT_FOUND)
         except (Usuario.DoesNotExist, UsuarioEmpresa.DoesNotExist):
             return Response({
                 "success": False,
@@ -202,24 +206,26 @@ class FaceValidationView(APIView):
         for face in faces_salvas:
             similaridade = comparar_vetores(vetor_entrada, face.arr_imagem)
             if similaridade >= SIMILARITY_THRESHOLD:
-                TentativaAcesso.objects.create(
-                    id_usuario_empresa=usuario_empresa,
-                    bl_sucesso=True
-                )
-                registrar_alerta(
-                    usuario_empresa=usuario_empresa,
-                    tipo_alerta="login_sucesso",
-                    mensagem_dict={"mensagem": f"Login facial realizado com sucesso por {usuario.nm_nome}."},
-                    enviar_email=True,
-                    destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
-                )
-                return Response({
-                    "success": True,
-                    "autenticado": True,
-                    "similaridade": round(similaridade, 3),
-                    "usuario_id": usuario.id,
-                    "face_id": face.id
-                }, status=status.HTTP_200_OK)
+                acertos += 1
+                if acertos >= 2:
+                    TentativaAcesso.objects.create(
+                        id_usuario_empresa=usuario_empresa,
+                        bl_sucesso=True
+                    )
+                    registrar_alerta(
+                        usuario_empresa=usuario_empresa,
+                        tipo_alerta="login_sucesso",
+                        mensagem_dict={"mensagem": f"Login facial realizado com sucesso por {usuario.nm_nome}."},
+                        enviar_email=True,
+                        destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
+                    )
+                    return Response({
+                        "success": True,
+                        "autenticado": True,
+                        "similaridade": round(similaridade, 3),
+                        "usuario_id": usuario.id,
+                        "face_id": face.id
+                    }, status=status.HTTP_200_OK)
 
         TentativaAcessoAnonimo.objects.create(
             id_empresa=empresa
@@ -229,7 +235,7 @@ class FaceValidationView(APIView):
             tipo_alerta="login_falha",
             mensagem_dict={"mensagem": f"Tentativa de login facial falhou para {usuario.nm_nome}."},
             enviar_email=True,
-            destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
+            destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
         )
         if frames:
             primeiro_frame = frames[0]
