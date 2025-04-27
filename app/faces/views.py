@@ -147,7 +147,7 @@ class FaceUpdateView(APIView):
         }, status=status.HTTP_200_OK)
     
 
-SIMILARITY_THRESHOLD = 0.80  # pode ajustar
+SIMILARITY_THRESHOLD = 0.92  # pode ajustar
 
 def comparar_vetores(v1, v2):
     return 1 - cosine(v1, v2)
@@ -224,8 +224,8 @@ class FaceValidationView(APIView):
                     )
                     registrar_alerta(
                         usuario_empresa=usuario_empresa,
-                        tipo_alerta="login_sucesso",
-                        mensagem_dict={"mensagem": f"Login facial realizado com sucesso por {usuario.nm_nome}."},
+                        tipo_alerta="face-validada",
+                        mensagem_dict={"mensagem": f"Login FACIAL realizado com sucesso por {usuario.nm_nome}."},
                         enviar_email=True,
                         destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
                     )
@@ -243,7 +243,7 @@ class FaceValidationView(APIView):
         registrar_alerta(
             usuario_empresa=usuario_empresa,
             tipo_alerta="login_falha",
-            mensagem_dict={"mensagem": f"Tentativa de login facial falhou para {usuario.nm_nome}."},
+            mensagem_dict={"mensagem": f"Tentativa de login FACIAL falhou para {usuario.nm_nome}."},
             enviar_email=True,
             destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
         )

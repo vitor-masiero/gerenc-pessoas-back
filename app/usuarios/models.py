@@ -19,6 +19,8 @@ class Usuario(models.Model):
     bl_bloqueado = models.BooleanField(default=False)
     nu_tentativas_falhas = models.IntegerField()
     dt_bloqueio = models.DateTimeField(null=True, blank=True)
+    cd_recuperacao_senha = models.CharField(max_length=6, null=True, blank=True)
+    dt_codigo_expiracao = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.pk:
@@ -38,5 +40,5 @@ class Usuario(models.Model):
         ordering = ['nm_nome']
         db_table = 'tb_usuario'
     
-    def _str_(self):
-        f"{self.nm_nome} ({self.ds_email})"
+    def __str__(self):
+        return f"{self.nm_nome} ({self.ds_email})"

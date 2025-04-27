@@ -5,8 +5,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-miv@m)iidfq1cpiil9x19!)!e_qh-jl(jay=d=qpuq$r9w$8&@'
 
-DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
@@ -125,3 +123,5 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+
+DEBUG = True
