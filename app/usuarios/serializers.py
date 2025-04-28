@@ -52,6 +52,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     senha = serializers.CharField()
+    empresa_id = serializers.IntegerField()
 
 class EsqueciSenhaSerializer(serializers.Serializer):
     email = serializers.EmailField()

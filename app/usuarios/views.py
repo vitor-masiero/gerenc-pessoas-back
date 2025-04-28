@@ -1,5 +1,5 @@
 from rest_framework import generics
-from app.usuarios.models import Usuario
+from app.usuarios.models import Usuario, LoginUsuario
 from app.usuarios.serializers import UsuarioSerializer, LoginSerializer, EsqueciSenhaSerializer, ResetarSenhaSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,6 +9,8 @@ from django.core.mail import send_mail
 from random import randint
 from django.utils import timezone
 from servidor import settings
+from app.usuarios_empresas.models import UsuarioEmpresa
+from app.empresas.models import Empresa
 
 #Métodos genéricos - CRUD
 class UsuariosAPIView(generics.ListCreateAPIView):
@@ -25,6 +27,7 @@ class UsuarioLoginView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             senha = serializer.validated_data['senha']
+            empresa_id = serializer.validated_data.get('empresa_id')
 
             try:
                 usuario = Usuario.objects.get(ds_email=email)
@@ -48,7 +51,37 @@ class UsuarioLoginView(APIView):
             usuario.nu_tentativas_falhas = 0
             usuario.save()
 
-            return Response({"mensagem": "Login realizado com sucesso!"}, status=status.HTTP_200_OK)
+            permissoes = []
+            for ue in UsuarioEmpresa.objects.filter(usuario=usuario):
+                permissoes.append({
+                    "empresa_id": ue.empresa.id,
+                    "permissao": ue.ds_usuario_permissao
+                })
+
+            if not empresa_id:
+                return Response({"erro": "Empresa não informada."}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                empresa = Empresa.objects.get(id=empresa_id)
+            except Empresa.DoesNotExist:
+                return Response({"erro": "Empresa não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Verificar se o usuário pertence à empresa
+            if not UsuarioEmpresa.objects.filter(usuario=usuario, empresa=empresa).exists():
+                return Response({"erro": "Usuário não pertence a essa empresa."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Criar log de login
+            LoginUsuario.objects.create(usuario=usuario, empresa=empresa)
+
+            return Response({
+                "mensagem": "Login realizado com sucesso!",
+                "usuario_id": usuario.id,
+                "nome": usuario.nm_nome,
+                "email": usuario.ds_email,
+                "empresa_id": empresa.id,
+                "permissão":permissoes
+            }, status=status.HTTP_200_OK)
+
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

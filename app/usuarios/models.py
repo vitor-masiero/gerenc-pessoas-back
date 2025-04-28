@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from app.enderecos.models import Endereco
+from app.empresas.models import Empresa
 
 class Usuario(models.Model):
     id = models.AutoField(primary_key=True)
@@ -17,7 +18,7 @@ class Usuario(models.Model):
     )
     ds_senha_hash = models.CharField(max_length=200)
     bl_bloqueado = models.BooleanField(default=False)
-    nu_tentativas_falhas = models.IntegerField()
+    nu_tentativas_falhas = models.IntegerField(default=0)
     dt_bloqueio = models.DateTimeField(null=True, blank=True)
     cd_recuperacao_senha = models.CharField(max_length=6, null=True, blank=True)
     dt_codigo_expiracao = models.DateTimeField(null=True, blank=True)
@@ -42,3 +43,15 @@ class Usuario(models.Model):
     
     def __str__(self):
         return f"{self.nm_nome} ({self.ds_email})"
+
+
+class LoginUsuario(models.Model):
+    id = models.AutoField(primary_key=True)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='logins')
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='logins')
+    dt_login = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Login de Usuário'
+        verbose_name_plural = 'Logins de Usuários'
+        db_table = 'tb_login_usuario'

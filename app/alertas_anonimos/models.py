@@ -2,7 +2,7 @@ from django.db import models
 from app.empresas.models import Empresa
 
 class AlertaAnonimo(models.Model):
-    id_usuario_empresa = models.ForeignKey(
+    id_empresa = models.ForeignKey(
         Empresa,
         on_delete=models.CASCADE,
         related_name='alertasAnonimos',

@@ -156,31 +156,41 @@ class FaceValidationView(APIView):
     parser_classes = [MultiPartParser]
 
     def post(self, request, *args, **kwargs):
-        user_id = request.data.get("usuario_id")
+        emp_id = request.data.get("empresa_id")
+        emp_senha = request.data.get("senha_empresa")
         files = request.FILES.getlist("frames")
 
-        if not user_id or not files:
+        if not emp_id or not emp_senha or not files:
             return Response({
                 "success": False,
-                "message": "ID do usuário e frames são obrigatórios."
+                "message": "ID da empresa, senha e frames são obrigatórios."
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            usuario = Usuario.objects.get(pk=user_id)
-            usuario_empresa = UsuarioEmpresa.objects.get(usuario=usuario)
-            empresa = usuario_empresa.empresa
+            empresa = Empresa.objects.get(pk=emp_id)
         except Empresa.DoesNotExist:
             return Response({
                 "success": False,
                 "message": "Empresa não encontrada."
             }, status=status.HTTP_404_NOT_FOUND)
-        except (Usuario.DoesNotExist, UsuarioEmpresa.DoesNotExist):
+
+        # Validar senha da empresa
+        if empresa.senha != emp_senha:  # (Atenção: isso presume que Empresa tem campo 'senha')
             return Response({
                 "success": False,
-                "message": "Usuário não encontrado."
+                "message": "Senha da empresa incorreta."
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            usuario_empresa = UsuarioEmpresa.objects.get(empresa=empresa)
+            usuario = usuario_empresa.usuario
+        except UsuarioEmpresa.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Usuário da empresa não encontrado."
             }, status=status.HTTP_404_NOT_FOUND)
-        
-    
+
+        # Processar frames recebidos
         frames = []
         for file in files:
             file_bytes = np.frombuffer(file.read(), np.uint8)
@@ -194,13 +204,14 @@ class FaceValidationView(APIView):
                 "message": "Nenhuma imagem válida foi enviada."
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Extrair vetores das imagens
         vetores_entrada = process_faces_with_face_recognition(frames)
         if not vetores_entrada:
             return Response({
                 "success": False,
                 "message": "Nenhum rosto detectado nos frames."
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if isinstance(vetores_entrada, list):
             vetor_entrada = np.mean(np.array(vetores_entrada), axis=0)
         else:
@@ -208,15 +219,15 @@ class FaceValidationView(APIView):
 
         vetor_entrada = np.array(vetor_entrada, dtype=np.float32)
 
+        # Buscar faces salvas do usuário
         faces_salvas = Face.objects.filter(usuario=usuario)
 
         for face in faces_salvas:
-            vetor_salvo = face.arr_imagem
-            vetor_salvo = np.array(vetor_salvo, dtype=np.float32)
-            
+            vetor_salvo = np.array(face.arr_imagem, dtype=np.float32)
+
             if vetor_entrada.ndim == 1 and vetor_salvo.ndim == 1:
                 similaridade = comparar_vetores(vetor_entrada, vetor_salvo)
-                
+
                 if similaridade >= SIMILARITY_THRESHOLD:
                     TentativaAcesso.objects.create(
                         id_usuario_empresa=usuario_empresa,
@@ -227,16 +238,17 @@ class FaceValidationView(APIView):
                         tipo_alerta="face-validada",
                         mensagem_dict={"mensagem": f"Login FACIAL realizado com sucesso por {usuario.nm_nome}."},
                         enviar_email=True,
-                        destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
+                        destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
                     )
                     return Response({
                         "success": True,
                         "autenticado": True,
                         "similaridade": round(similaridade, 3),
-                        "usuario_id": usuario.id,
+                        "empresa_id": empresa.id,
                         "face_id": face.id
                     }, status=status.HTTP_200_OK)
 
+        # Caso nenhuma face compatível encontrada
         tentativa_acesso_anonimo = TentativaAcessoAnonimo.objects.create(
             id_empresa=empresa
         )
@@ -245,12 +257,17 @@ class FaceValidationView(APIView):
             tipo_alerta="login_falha",
             mensagem_dict={"mensagem": f"Tentativa de login FACIAL falhou para {usuario.nm_nome}."},
             enviar_email=True,
-            destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"] #######EMAIL DO ADMINISTRADOR#######
+            destinatarios=["jose-vitor_m_silva@estudante.sesisenai.org.br"]
         )
+
         if frames:
             primeiro_frame = frames[0]
-            criar_face_anonima(tentativa_acesso_anonimo=tentativa_acesso_anonimo, frame=primeiro_frame, usuario=usuario)
-            
+            criar_face_anonima(
+                tentativa_acesso_anonimo=tentativa_acesso_anonimo,
+                frame=primeiro_frame,
+                usuario=usuario
+            )
+
         return Response({
             "success": False,
             "autenticado": False,
